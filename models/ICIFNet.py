@@ -5,6 +5,7 @@ from .pvtv2 import pvt_v2_b1
 import torch.nn.functional as F
 import numpy as np
 import math
+from pathlib import Path
 from torch import nn, einsum
 from einops import rearrange
 
@@ -482,18 +483,25 @@ class ICIFNet(nn.Module):
 
         self.show_Feature_Maps = False
         self.resnet = resnet18()
-        # if pretrained:
-        self.resnet.load_state_dict(torch.load('./pretrained/resnet18-5c106cde.pth'))
+        if pretrained:
+            pretrained_dir = Path(__file__).resolve().parents[1] / "pretrained"
+            resnet_path = pretrained_dir / "resnet18-5c106cde.pth"
+            if not resnet_path.exists():
+                raise FileNotFoundError(f"ICIF-Net ResNet weights not found: {resnet_path}")
+            self.resnet.load_state_dict(torch.load(resnet_path, map_location="cpu"))
         # self.resnet.fc = nn.Identity()
         self.resnet.layer4 = nn.Identity()
 
         self.backbone = pvt_v2_b1()  # [64, 128, 320, 512]
-        path = './pretrained/pvt_v2_b1.pth'
-        save_model = torch.load(path)
-        model_dict = self.backbone.state_dict()
-        state_dict = {k: v for k, v in save_model.items() if k in model_dict.keys()}
-        model_dict.update(state_dict)
-        self.backbone.load_state_dict(model_dict)
+        if pretrained:
+            pvt_path = pretrained_dir / "pvt_v2_b1.pth"
+            if not pvt_path.exists():
+                raise FileNotFoundError(f"ICIF-Net PVT weights not found: {pvt_path}")
+            save_model = torch.load(pvt_path, map_location="cpu")
+            model_dict = self.backbone.state_dict()
+            state_dict = {k: v for k, v in save_model.items() if k in model_dict.keys()}
+            model_dict.update(state_dict)
+            self.backbone.load_state_dict(model_dict)
 
         self.final_x = nn.Sequential(
             Conv(64, 64, 3, bn=True, relu=True),
