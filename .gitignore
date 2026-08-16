@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+pretrained/*.pth
+pretrained/*.pt
+checkpoints/*.pth
+checkpoints/*.pt
